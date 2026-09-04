@@ -1,0 +1,17 @@
+---
+layout: default
+---
+
+<section id="feed" data-next="{% if paginator.next_page_path %}{% include relurl.html to=paginator.next_page_path %}{% endif %}">
+{%- for post in paginator.posts %}
+{% include post-card.html post=post %}
+{%- endfor %}
+</section>
+
+{% if paginator.next_page_path %}
+<p id="load-more-wrap">
+  <a id="load-more" href="{% include relurl.html to=paginator.next_page_path %}">Cargar más</a>
+</p>
+{% endif %}
+
+<script src="{% include relurl.html to='/assets/js/feed.js' %}" defer></script>

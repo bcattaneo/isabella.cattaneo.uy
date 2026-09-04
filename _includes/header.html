@@ -1,0 +1,9 @@
+<header class="site-header">
+  <a href="{% include relurl.html to='/' %}">
+    <img class="site-photo" src="{% include relurl.html to='/assets/img/isabella-header.jpg' %}" alt="Isabella" loading="lazy">
+  </a>
+  <a class="site-title" href="{% include relurl.html to='/' %}">{{ site.title }}</a>
+  <p class="site-tagline">{{ site.description }}</p>
+  <p class="site-age" id="site-age"></p>
+</header>
+<script src="{% include relurl.html to='/assets/js/age.js' %}" defer></script>

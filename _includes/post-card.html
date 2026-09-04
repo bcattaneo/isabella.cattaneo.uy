@@ -1,0 +1,21 @@
+{%- comment -%}
+  Usage: {% include post-card.html post=some_post %}
+  Renders one post as a self-contained card. Used by index.md (feed loop),
+  the auto-generated /page:num/ pagination pages (same index.md template),
+  and _layouts/post.html (single post permalink) — so a post's markup is
+  identical everywhere it appears.
+{%- endcomment -%}
+{%- assign p = include.post -%}
+{%- assign _meses = "enero,febrero,marzo,abril,mayo,junio,julio,agosto,setiembre,octubre,noviembre,diciembre" | split: "," -%}
+{%- assign _mes_idx = p.date | date: "%-m" | minus: 1 -%}
+<article class="post-card" id="post-{{ p.date | date: '%Y%m%d%H%M' }}">
+  <a class="post-permalink" href="{% include relurl.html to=p.url %}">
+    <time class="post-date" datetime="{{ p.date | date_to_xmlschema }}">{{ p.date | date: "%-d" }} de {{ _meses[_mes_idx] }} de {{ p.date | date: "%Y, %H:%M" }}</time>
+  </a>
+  {%- if p.image %}
+  <img class="post-image" src="{% include relurl.html to=p.image %}" alt="" loading="lazy">
+  {%- endif %}
+  <div class="post-content">
+    {{ p.content }}
+  </div>
+</article>

@@ -1,0 +1,30 @@
+title: Isabella
+description: >-
+  Pequeñas noticias de Isabella, día a día.
+url: "https://isabella.cattaneo.uy"
+baseurl: ""
+
+author: Bruno Cattáneo
+lang: es
+
+# No theme, no plugins beyond what GitHub Pages supports natively — keeps the
+# build working with plain `git push`, no Actions workflow required.
+plugins:
+  - jekyll-paginate
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+markdown: kramdown
+kramdown:
+  input: GFM
+
+paginate: 12
+paginate_path: "/page:num/"
+
+exclude:
+  - README.md
+  - CLAUDE.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
