@@ -20,7 +20,7 @@ Los plugins (`jekyll-paginate`, `jekyll-feed`, `jekyll-sitemap`, `jekyll-seo-tag
 ## Estructura
 
 ```
-_config.yml                  → config del sitio, paginación, plugins
+_config.yml                  → config del sitio, paginación, plugins, defaults (layout de posts)
 Gemfile                      → gemas para dev local (ver arriba)
 CNAME                        → dominio propio (isabella.cattaneo.uy)
 index.html                    → página principal: feed paginado + infinite scroll
@@ -65,21 +65,41 @@ date: 2026-08-27 23:42
 Texto del post en Markdown. Corto, estilo tweet — no lleva título.
 ```
 
-Con foto:
+Con fotos (una o varias — ver "Galería de fotos y carrusel" más abajo):
 
 ```yaml
 ---
 date: 2026-08-27 23:42
-image: /assets/img/posts/2026-08-27-bienvenida.jpg
+images:
+  - /assets/img/posts/2026-08-27-bienvenida-1.jpg
+  - /assets/img/posts/2026-08-27-bienvenida-2.jpg
+image: /assets/img/posts/2026-08-27-bienvenida-1.jpg
 ---
 
 Texto del post.
 ```
 
-- **No usar `title:`** — los posts son estilo tweet, sin título, y el layout no lo muestra en el feed (si se quiere una excepción puntual con título, el layout no lo renderiza mal, simplemente no se ve en ningún lado — hay que agregar soporte si algún día se necesita).
+- **No usar `title:`** — los posts son estilo tweet, sin título. Esto está reforzado en `_config.yml` (`defaults:` fuerza `title: ""` para todo lo de `_posts/`) y en `_layouts/default.html` (el `<title>` del navegador y el `og:title`/`twitter:title` de `jekyll-seo-tag` caen al `site.title` cuando el título está vacío) — ver el gotcha del `title` auto-generado más abajo.
 - **`date:`** con hora incluida (`YYYY-MM-DD HH:MM`) — se muestra formateada en cada card ("27 de agosto de 2026, 23:42"). Si se omite la hora, Jekyll asume medianoche.
-- **`image:`** (opcional) — ruta absoluta a la foto (convención: guardarlas bajo `assets/img/posts/`). Se muestra en la card con `loading="lazy"` (ver siguiente sección) y además `jekyll-seo-tag` la usa automáticamente como `og:image` — o sea que al compartir el link del post (WhatsApp, etc.) va a mostrar esa foto en la preview.
+- **`images:`** (opcional, lista) — una o más rutas absolutas a fotos (convención: guardarlas bajo `assets/img/posts/`). Se muestran como thumbnails chicos en la card, **debajo del texto** del post; al hacer clic en cualquiera se abre un lightbox/carrusel con todas las fotos de ese post. Ver "Galería de fotos y carrusel" más abajo.
+- **`image:`** (opcional, string único) — **no se renderiza en la card**, es solo para SEO: `jekyll-seo-tag` la usa como `og:image`/`twitter:image`, o sea la foto que se ve en el preview al compartir el link (WhatsApp, etc.). El plugin no soporta una lista de imágenes, por eso es un campo separado de `images:` — normalmente se le pone la misma ruta que `images[0]`. Si un post tiene `images:` pero no `image:`, simplemente no habrá foto en el preview al compartir (no rompe nada, solo no hay og:image).
 - Cada post tiene además su propio permalink individual (vía `_layouts/post.html`, permalink por defecto de Jekyll: `/YYYY/MM/DD/slug.html`) — compartible por separado, no solo visible en el feed general.
+
+**Gotcha real, ya pisado una vez**: para que ese permalink individual use `_layouts/post.html` (y por lo tanto herede `_layouts/default.html` con header/footer/CSS/lightbox), hace falta el bloque `defaults:` en `_config.yml` (`scope: {type: posts} → values: {layout: post, ...}`) — Jekyll **no** asigna `layout: post` automáticamente a los archivos de `_posts/` solo por convención de carpeta. Sin ese `defaults:`, cada permalink individual renderiza el contenido del post pelado (sin ningún layout, ningún CSS, ningún include) aunque el feed general se vea perfecto — fácil de no notar si nunca se visita un permalink directamente.
+
+El mismo bloque `defaults:` también fuerza `title: ""` para todo lo de `_posts/` — esto es lo que evita el próximo gotcha: Jekyll auto-genera un `page.title` a partir del nombre de archivo (`Utils.titleize_slug`) para todo post que no tenga `title:` explícito en el front matter, usando `data["title"] ||= ...` (ver `Document#populate_title` en la gema `jekyll`). Como acá los posts nunca llevan `title:` a propósito, sin el default explícito `title: ""` cada permalink terminaría mostrando un título tipo "Bienvenida Isabella" en la pestaña del navegador y en `og:title`/`twitter:title` — justo lo que este sitio busca evitar (posts estilo tweet, sin título, ver arriba). El default de `title: ""` bloquea esa auto-generación (`"" ||= x` en Ruby no reemplaza `""` porque solo `nil`/`false` son falsy) sin romper nada más: `jekyll-seo-tag` trata un `title` vacío como ausente y cae a `site.title`.
+
+Un detalle relacionado si se toca `_layouts/default.html`: el filtro/keyword `blank` de Liquid (`{% if page.title != blank %}`) **no funciona** en este entorno — depende de que el objeto responda a `.blank?`, un método de ActiveSupport/Rails que no está cargado acá (Liquid puro), así que la comparación silenciosamente siempre da `nil`/falso y el `if` termina comportándose como si la condición fuera siempre verdadera. Por eso el `<title>` del layout usa la comparación explícita `{% if page.title and page.title != "" %}` en vez de `blank` — cubre tanto el caso `nil` (páginas que no son posts, como el feed paginado) como el caso `""` (posts, por el default de arriba).
+
+## Galería de fotos y carrusel (lightbox)
+
+Un post puede llevar una o más fotos vía `images:` (ver "Cómo escribir un post" arriba). `_includes/post-card.html` las renderiza **después del texto del post** (`.post-content`), como una fila de thumbnails chicos (`.post-gallery` > `.post-thumb`, botones de 84×84px) — no a ancho completo. Cada `.post-gallery` lleva un atributo `data-images` con un array JSON de las URLs ya resueltas por `relurl.html` (así el JS no tiene que recalcular profundidad de ruta); cada `.post-thumb` lleva `data-index` con su posición en ese array.
+
+`assets/js/lightbox.js` implementa el carrusel/lightbox, 100% vanilla (sin librerías, mismo criterio que `feed.js`/`age.js`). El markup del lightbox (`#lightbox`, con botones prev/next/close, la imagen grande y el contador) es un **singleton**: vive una sola vez en `_layouts/default.html` (al final del `<body>`, después del footer), no dentro de cada card — así aparece en toda página que use el layout base (feed, páginas de paginación, permalinks individuales).
+
+**Gotcha a tener en cuenta si se toca este JS**: los listeners de click/teclado están delegados en `document` (`document.addEventListener("click", ...)`), no atados directamente a cada `.post-thumb` al cargar la página. Esto es necesario porque `feed.js` agrega cards nuevas al DOM dinámicamente (infinite scroll) después de que `lightbox.js` ya corrió — si los listeners estuvieran atados por elemento en el load inicial, las fotos de posts cargados vía infinite scroll no abrirían el lightbox.
+
+Si un post tiene una sola foto en `images:`, el lightbox igual se abre (como una "galería" de un solo elemento) pero oculta las flechas prev/next y el contador.
 
 ## Feed, paginación y "lazyloading"
 

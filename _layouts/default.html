@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <title>{% if page.title and page.title != "" %}{{ page.title }} · {% endif %}{{ site.title }}</title>
   <link rel="stylesheet" href="{% include relurl.html to='/assets/css/style.css' %}">
   {% feed_meta %}
   {% seo %}
@@ -14,5 +14,13 @@
     {{ content }}
   </main>
   {% include footer.html %}
+  <div id="lightbox" class="lightbox" hidden>
+    <button type="button" class="lightbox-close" aria-label="Cerrar">&times;</button>
+    <button type="button" class="lightbox-prev" aria-label="Anterior">&#8249;</button>
+    <img class="lightbox-image" src="" alt="">
+    <button type="button" class="lightbox-next" aria-label="Siguiente">&#8250;</button>
+    <p class="lightbox-counter"></p>
+  </div>
+  <script src="{% include relurl.html to='/assets/js/lightbox.js' %}" defer></script>
 </body>
 </html>

@@ -22,6 +22,14 @@ kramdown:
 paginate: 12
 paginate_path: "/page:num/"
 
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      title: ""
+
 exclude:
   - README.md
   - CLAUDE.md

@@ -12,10 +12,21 @@
   <a class="post-permalink" href="{% include relurl.html to=p.url %}">
     <time class="post-date" datetime="{{ p.date | date_to_xmlschema }}">{{ p.date | date: "%-d" }} de {{ _meses[_mes_idx] }} de {{ p.date | date: "%Y, %H:%M" }}</time>
   </a>
-  {%- if p.image %}
-  <img class="post-image" src="{% include relurl.html to=p.image %}" alt="" loading="lazy">
-  {%- endif %}
   <div class="post-content">
     {{ p.content }}
   </div>
+  {%- if p.images %}
+  {%- assign _urls = "" | split: "," -%}
+  {%- for img in p.images -%}
+    {%- capture _u -%}{% include relurl.html to=img %}{%- endcapture -%}
+    {%- assign _urls = _urls | push: _u -%}
+  {%- endfor -%}
+  <div class="post-gallery" data-images='{{ _urls | jsonify }}'>
+    {%- for img in p.images -%}
+    <button type="button" class="post-thumb" data-index="{{ forloop.index0 }}">
+      <img src="{% include relurl.html to=img %}" alt="" loading="lazy">
+    </button>
+    {%- endfor -%}
+  </div>
+  {%- endif %}
 </article>
