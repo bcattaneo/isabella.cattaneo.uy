@@ -35,6 +35,30 @@ main {
   padding: 0 16px 64px;
 }
 
+.auth-gate {
+  max-width: 400px;
+  margin: 24px auto 64px;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.auth-gate-message {
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.auth-btn {
+  display: inline-block;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 24px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .site-header {
   max-width: 640px;
   margin: 0 auto;

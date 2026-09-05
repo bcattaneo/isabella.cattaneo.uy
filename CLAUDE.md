@@ -2,7 +2,9 @@
 
 Blog personal/familiar sobre Isabella (hija de Bruno Cattáneo, nacida el 27/08/2026 a las 23:42). Es una especie de "mini noticias" estilo Twitter: posts cortos en Markdown, con texto y opcionalmente una foto, ordenados cronológicamente en una única página principal. Sitio estático Jekyll, en español únicamente (sin la estructura bilingüe de otros proyectos del autor), desplegado en GitHub Pages con dominio propio desde el día uno.
 
-Repo: `bcattaneo/isabella.cattaneo.uy` (ya existe en GitHub, remote `origin` configurado). Se despliega vía el build nativo de Jekyll de GitHub Pages — **no hay GitHub Actions workflow**. Esto implica: nada de plugins custom, ni gemas de tema, ni nada que no esté en la [lista de gemas soportadas por GitHub Pages](https://pages.github.com/versions/) (`github-pages` gem). Todos los plugins usados acá (`jekyll-paginate`, `jekyll-feed`, `jekyll-sitemap`, `jekyll-seo-tag`) están en esa lista.
+Repo: `bcattaneo/isabella.cattaneo.uy` (ya existe en GitHub, remote `origin` configurado). Se despliega vía el build nativo de Jekyll de GitHub Pages — **no hay GitHub Actions workflow**. Esto implica: nada de plugins custom, ni gemas de tema, ni nada que no esté en la [lista de gemas soportadas por GitHub Pages](https://pages.github.com/versions/) (`github-pages` gem). Todos los plugins usados acá (`jekyll-paginate`, `jekyll-sitemap`, `jekyll-seo-tag`) están en esa lista.
+
+El sitio requiere login con Google para ver el contenido — ver "Login con Google (Firebase Auth)" más abajo. **No hay `jekyll-feed`**: se sacó a propósito al agregar el login, porque el RSS es XML estático que cualquiera puede pedir sin pasar por ningún gate de JS (ver esa sección para el porqué completo).
 
 ## Cómo levantarlo local
 
@@ -13,7 +15,7 @@ bundle exec jekyll serve
 
 Sirve en `http://localhost:4000/`. El `Gemfile` fija `jekyll` puro (no la gema pesada `github-pages`) para que `bundle install` sea rápido — el build de producción en GitHub Pages **ignora el Gemfile del repo por completo** y siempre corre con su propio entorno fijo de Jekyll + plugins, así que esto es solo comodidad de desarrollo local, no afecta producción.
 
-Los plugins (`jekyll-paginate`, `jekyll-feed`, `jekyll-sitemap`, `jekyll-seo-tag`) están declarados dos veces por diseño, y **hay que mantenerlos sincronizados** si se agrega/saca alguno:
+Los plugins (`jekyll-paginate`, `jekyll-sitemap`, `jekyll-seo-tag`) están declarados dos veces por diseño, y **hay que mantenerlos sincronizados** si se agrega/saca alguno:
 - En `Gemfile`, dentro de `group :jekyll_plugins do ... end` — para que `bundle install` los instale localmente (con jekyll puro no vienen incluidos por defecto).
 - En `_config.yml`, bajo `plugins:` — para que Jekyll los active al buildear (tanto local como en GitHub Pages).
 
@@ -36,6 +38,9 @@ _includes/post-card.html     → partial que renderiza UN post — se usa en el 
 _includes/relurl.html        → ver "Links internos" abajo
 assets/css/style.css         → todo el CSS del sitio (sin build step, un solo archivo)
 assets/js/feed.js            → infinite scroll (ver "Feed, paginación y lazyloading")
+assets/js/auth.js            → login con Google + gate del sitio (ver "Login con
+                                Google (Firebase Auth)" abajo)
+assets/js/allowlist.js       → whitelist de emails con acceso (idem)
 assets/img/isabella-header.jpg → foto de Isabella en el header del sitio (ver
                                 "Header y tema" abajo) — distinta de assets/img/posts/,
                                 que es para fotos de posts individuales
@@ -127,11 +132,33 @@ La paleta vive toda en `assets/css/style.css` como custom properties en `:root` 
 
 También en el header, un `<p id="site-age">` muestra la edad actual de Isabella, calculada **client-side** por `assets/js/age.js` (no en build time — así siempre está al día sin depender de un rebuild, algo importante porque este sitio no tiene CI/cron, solo rebuildea con cada `git push`). La fecha de nacimiento (`2026-08-27T23:42:00-03:00`, hora de Montevideo) está hardcodeada en ese archivo — si hace falta tocarla, es el único lugar. Lógica de formato: mientras no cumplió 1 año muestra "X días"; a partir del primer cumpleaños, "N año(s)" o "N año(s) y M mes(es)" (omite "y 0 meses"). El `<p>` arranca vacío y `.site-age:empty { display: none }` en el CSS lo oculta si JS está deshabilitado, en vez de mostrar un hueco vacío.
 
-## Feed RSS y SEO
+## SEO
 
-- `jekyll-feed` genera `/feed.xml` automáticamente (linkeado desde el footer) — para que alguien de la familia lo siga sin depender de que se acuerde de visitar la página.
-- `jekyll-sitemap` genera `/sitemap.xml`.
+- `jekyll-sitemap` genera `/sitemap.xml` (lista URLs de posts, sin contenido).
 - `jekyll-seo-tag` (el `{% seo %}` en `_layouts/default.html`) genera meta tags Open Graph/Twitter Card automáticamente, usando `site.title`/`site.description` y, por página, `page.image` si está seteado — de ahí la convención de `image:` en el front matter de los posts (ver arriba).
+- **No hay `jekyll-feed`** (se sacó al agregar el login, ver "Login con Google" abajo) — no hay RSS.
+
+## Login con Google (Firebase Auth)
+
+El sitio es privado: nadie ve el feed de posts sin loguearse con Google **y** estar en una whitelist de emails. Es importante entender qué tipo de protección es esta antes de tocar algo acá:
+
+**Esto es un gate de UX del lado del cliente, no seguridad real del contenido.** El sitio sigue siendo 100% estático servido por GitHub Pages: el HTML de `index.html`, `/page2/`, cada permalink de post, sigue siendo un archivo público en el CDN — cualquiera con la URL (o "ver código fuente") puede leer el contenido sin loguearse ni pasar por `auth.js`. Lo que este mecanismo hace es ocultar visualmente el contenido hasta que el JS confirma la sesión, disuadiendo a un visitante casual — no reemplaza una restricción real de acceso a datos (eso requeriría mover el contenido a algo con reglas de seguridad server-side tipo Firestore, lo cual es un cambio de arquitectura mucho más grande y contradice el objetivo de "sitio estático, `git push` y ya"). Por eso también se sacó `jekyll-feed`: el RSS es XML plano sin ningún gate posible, y dejarlo hubiera contradicho el sentido de tener login.
+
+**Mecanismo**:
+1. `_layouts/default.html` arranca con `<main id="main-content" hidden>` (el feed/contenido) y un `<div id="auth-gate" hidden>` (pantalla de login/pendiente) — ambos ocultos hasta que el JS decide qué mostrar. El header (foto + nombre + tagline + edad) y el footer quedan **siempre visibles** como "teaser" — no son contenido sensible, solo confirman de qué sitio se trata antes de loguearse.
+2. `assets/js/auth.js` (cargado como `<script type="module">`, no `defer` regular — los módulos ES ya difieren su ejecución) inicializa Firebase (`firebaseConfig` — es público a propósito, no es secreto: la config del SDK de Firebase está pensada para vivir en el cliente) y llama `onAuthStateChanged`:
+   - Sin sesión → muestra `#auth-gate` con el mensaje "¡Las noticias son sólo para mi familia!" y el botón "Soy familia — entrar con Google" (`signInWithPopup` + `GoogleAuthProvider`).
+   - Con sesión pero el email no está en la whitelist → muestra `#auth-gate` con el mensaje "Isabella seguramente te conoce, pero no estás en la lista blanca... Pedile acceso a su papá o mamá...". No hay botón de cerrar sesión (se sacó a propósito, no aporta nada acá) — si alguien queda logueado con la cuenta equivocada, tiene que cerrar sesión desde Google mismo, no desde el sitio.
+   - Con sesión y en la whitelist → oculta `#auth-gate`, muestra `#main-content`.
+3. La sesión persiste sola vía Firebase (localStorage del browser) — si ya inició sesión antes y sigue válida, `onAuthStateChanged` dispara con el usuario sin pedir nada de nuevo.
+
+**Whitelist**: vive en código, en `assets/js/allowlist.js` (un array `ALLOWLIST` de emails en minúsculas), **no en Firebase** — se decidió así a propósito en vez de usar Firestore, para no depender de una base de datos ni de reglas de seguridad server-side. Para dar o sacar acceso a alguien: editar ese archivo y hacer `git push` (mismo flujo que cualquier otro cambio del sitio). El archivo es público (cualquiera puede ver esos emails en el código fuente), pero eso no importa para la seguridad real: solo el dueño real de una cuenta de Google puede autenticarse *como* ese email, así que listar un email no le da acceso a nadie más que a su dueño legítimo.
+
+**Config de Firebase usada** (proyecto `isabella-72273`, app Web dentro de él): `apiKey`, `authDomain`, `projectId`, etc. en `assets/js/auth.js` — si hace falta rotar o cambiar de proyecto, es el único lugar. El proveedor "Google" tiene que estar habilitado en Firebase Console → Authentication → Sign-in method, y `isabella.cattaneo.uy` (+ `localhost` para dev) tienen que estar en Authentication → Settings → Authorized domains.
+
+**Gotcha si se toca esto**: el SDK de Firebase se carga vía CDN de Google (`https://www.gstatic.com/firebasejs/12.18.0/...`) como módulos ES (`import` en `auth.js`), sin bundler ni build step — mismo criterio de "sin build step" que el resto del sitio, aunque Firebase recomienda un bundler para producción. Si se actualiza la versión, hay que cambiarla en los tres `import` de `auth.js` a la vez (`firebase-app.js`, `firebase-auth.js`). El import de `allowlist.js` (`import { ALLOWLIST } from "./allowlist.js"`) es relativo al propio `auth.js`, no pasa por `relurl.html` — los imports de módulos ES se resuelven relativos a la URL del módulo que importa, no a la página, así que funciona igual sin importar la profundidad de la URL actual.
+
+**Nota sobre SHA-1**: si en algún momento hay que tocar la configuración de Firebase y aparece un pedido de huella SHA-1, no aplica a este flujo — eso es solo para apps Android nativas (o Dynamic Links), no para `signInWithPopup` en la Web.
 
 ## Gemfile / GitHub Pages
 

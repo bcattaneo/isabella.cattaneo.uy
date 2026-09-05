@@ -5,12 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if page.title and page.title != "" %}{{ page.title }} · {% endif %}{{ site.title }}</title>
   <link rel="stylesheet" href="{% include relurl.html to='/assets/css/style.css' %}">
-  {% feed_meta %}
   {% seo %}
 </head>
 <body>
   {% include header.html %}
-  <main>
+
+  <div id="auth-gate" class="auth-gate" hidden>
+    <p id="auth-gate-message" class="auth-gate-message"></p>
+    <button id="auth-login-btn" type="button" class="auth-btn">Soy familia — entrar con Google</button>
+  </div>
+
+  <main id="main-content" hidden>
     {{ content }}
   </main>
   {% include footer.html %}
@@ -22,5 +27,6 @@
     <p class="lightbox-counter"></p>
   </div>
   <script src="{% include relurl.html to='/assets/js/lightbox.js' %}" defer></script>
+  <script type="module" src="{% include relurl.html to='/assets/js/auth.js' %}"></script>
 </body>
 </html>
