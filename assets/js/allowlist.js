@@ -5,4 +5,5 @@
 // Usar el email tal cual lo devuelve Google, en minúsculas.
 export const ALLOWLIST = [
   "elbruno28@gmail.com",
+  "lbassdc@gmail.com"
 ];
