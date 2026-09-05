@@ -1,3 +1,5 @@
+---
+---
 import {
   initializeApp,
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
@@ -7,7 +9,7 @@ import {
   signInWithPopup,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-import { ALLOWLIST } from "./allowlist.js";
+import { ALLOWLIST } from "./allowlist.js?v={{ site.time | date: '%s' }}";
 
 // Public by design — Firebase web config isn't a secret; anyone can read it
 // in the page source, same as the ALLOWLIST below. Neither grants access on
